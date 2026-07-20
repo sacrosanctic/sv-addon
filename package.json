@@ -1,13 +1,13 @@
 {
-	"name": "@sacrosanctic/meta-test",
-	"description": "sv add-on for @sacrosanctic/meta-test",
+	"name": "@sacrosanctic/svelte-meta-tags",
+	"description": "sv add-on for svelte-meta-tags SEO component",
 	"version": "0.0.1",
 	"type": "module",
 	"license": "MIT",
 	"scripts": {
 		"demo-create": "sv create demo --types ts --template minimal --no-add-ons --no-install",
 		"demo-add": "pnpm build && sv add file:../ --cwd demo --no-git-check --no-install",
-		"demo-add:ci": "pnpm build && sv add file:../=who:you --cwd demo --no-git-check --no-download-check --no-install",
+		"demo-add:ci": "pnpm build && sv add file:../=title:My+Site&description:A+great+site --cwd demo --no-git-check --no-download-check --no-install",
 		"build": "tsdown",
 		"prepublishOnly": "npm run build",
 		"test": "vitest run"

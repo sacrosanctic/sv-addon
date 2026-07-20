@@ -10,43 +10,53 @@ const browser = false;
 const { test, prepareServer, testCases } = setupTest(
 	{ addon },
 	{
-		kinds: [{ type: 'default', options: { [addon.id]: { who: 'you' } } }],
+		kinds: [
+			{
+				type: 'default',
+				options: { [addon.id]: { title: 'Test Site', description: 'A test site' } }
+			}
+		],
 		filter: (testCase) => testCase.variant.includes('kit'),
 		browser
 	}
 );
 
 test.concurrent.for(testCases)(
-	'@sacrosanctic/meta-test $kind.type $variant',
+	'@sacrosanctic/svelte-meta-tags $kind.type $variant',
 	async (testCase, { page, ...ctx }) => {
 		const cwd = ctx.cwd(testCase);
 
-		const msg = "Community Addon Template demo for the add-on: '@sacrosanctic/meta-test'!";
+		// Verify Metatags.svelte component
+		const metatagsPath = path.resolve(cwd, 'src/lib/components/Metatags.svelte');
+		const metatagsContent = fs.readFileSync(metatagsPath, 'utf8');
+		expect(metatagsContent).toContain("import { MetaTags } from 'svelte-meta-tags'");
+		expect(metatagsContent).toContain('<MetaTags');
 
-		const contentPath = path.resolve(cwd, `src/lib/@sacrosanctic/meta-test/content.txt`);
-		const contentContent = fs.readFileSync(contentPath, 'utf8');
-		// Check if we have the imports
-		expect(contentContent).toContain(msg);
+		// Verify app.d.ts / app.ts types
+		const hasTs = testCase.variant.includes('ts');
+		const appTypesPath = path.resolve(
+			cwd,
+			hasTs ? 'src/app.d.ts' : 'src/app.ts'
+		);
+		const appTypesContent = fs.readFileSync(appTypesPath, 'utf8');
+		expect(appTypesContent).toContain('MetaTagsProps');
+		expect(appTypesContent).toContain('baseMetaTags');
+		expect(appTypesContent).toContain('pageMetaTags');
 
-		const helloPath = path.resolve(cwd, `src/lib/@sacrosanctic/meta-test/HelloComponent.svelte`);
-		const helloContent = fs.readFileSync(helloPath, 'utf8');
-		// Check if we have the imports
-		expect(helloContent).toContain('you');
+		// Verify +layout.ts has defineBaseMetaTags
+		const layoutTsPath = path.resolve(cwd, 'src/routes/+layout.ts');
+		const layoutTsContent = fs.readFileSync(layoutTsPath, 'utf8');
+		expect(layoutTsContent).toContain('defineBaseMetaTags');
+		expect(layoutTsContent).toContain('Test Site');
 
-		// For browser testing
+		// Verify +layout.svelte imports Metatags
+		const layoutSveltePath = path.resolve(cwd, 'src/routes/+layout.svelte');
+		const layoutSvelteContent = fs.readFileSync(layoutSveltePath, 'utf8');
+		expect(layoutSvelteContent).toContain('Metatags');
+
 		if (browser) {
 			const { close } = await prepareServer({ cwd, page });
-			// kill server process when we're done
 			ctx.onTestFinished(async () => await close());
-
-			// expectations
-			const textContent = await page.locator('p').last().textContent();
-			if (testCase.variant.includes('kit')) {
-				expect(textContent).toContain(msg);
-			} else {
-				// it's not a kit plugin!
-				expect(textContent).not.toContain(msg);
-			}
 		}
 	}
 );
