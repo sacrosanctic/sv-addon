@@ -11,6 +11,7 @@
 		"lint": "prettier --check . && eslint .",
 		"prepublishOnly": "npm run build",
 		"publint": "publint",
+		"release": "pn version patch --tag-version-prefix svelte-meta-tags@ --message \"svelte-meta-tags@%s\"",
 		"test": "vitest run"
 	},
 	"exports": {
