@@ -1,73 +1,44 @@
-# todo
+This repo is a collection of [community add-ons](https://svelte.dev/docs/cli/community) for Svelte. They can be found on [npmx](https://npmx.dev/search?q=keyword:sv-add)
 
-create an addon for .editorconfig
-create a monorepo
-figure out how to publish
+# Why this repo exists
 
-## problem with the ast
+The official Svelte CLI ships official add-ons but is strict about what qualifies — it [recommends](https://github.com/sveltejs/cli#contributing) that most add-ons be community ones.
 
-lacking an upsert function
+That leaves add-on maintenance to the associated library maintainers, who often lack the bandwidth, prior knowledge of the add-on API, or know-how around AST usage. This repo fills that gap.
 
-# patterns
+# Best practices
 
-## common happy path to account for
+Design for these permutations for best coverage:
 
-kit vs non kit
-js/jsdocs/ts
+- kit vs non-kit
+- ts vs jsdocs vs js
 
-## insert patterns
+Design for every `sv add` scenario:
 
-overwrite, just ignore what was there before, aka forced insert
-upsert, intergrate existing values
+- fresh project (conflict with base)
+- existing project (conflict with other libs)
+- rerun of the add-on (conflict with self)
+- older version of the add-on (migration)
 
-## ???
+Keep short source code inline, long ones in separate files.
+If there are no conflicts, use `template-sync` for bulk syncing.
 
-transforms.text
-// todo: document pattern: overwrite ignore previous file, good for files thats unlikely to have a naming collision, or when the component is too complex to transform via a codemod(term?) and best to let the user manually resolve the git conflict/diff
+## Resolving conflicts
 
-transform.script
-transform.sveltescript
-transform.svelte
-for modifying existing files, especially reserved files like +layout.svelte ...
+### Overwrite
 
-## always use dedent
+Replace whatever was there before. Good for files unlikely to have a naming collision, or components too complex to safely transform. Best to let the user manually resolve the git conflict.
 
-# search
+### Upsert
 
-https://npmx.dev/search?q=keyword:sv-add
+Integrate with existing values instead of replacing them. Requires the use of AST.
 
-# reference projects
+# Development
 
-https://github.com/flo-bit/svelte-atproto-sv
-https://github.com/mswjs/sveltekit
+https://svelte.dev/playground has an AST browser.
 
-# starter template/boilerplate/scaffolding
-
-https://github.com/lelabdev/svelteforge#readme
-
-# bug
-
-it just dawned on me to run that script again and i can reproduce it
---template addon always creates a js project, but
---types ts produces a tsconfig.json
-
-# test
+Test locally:
 
 ```sh
-rm ../asdf -rf
-pn build
-pnx sv@0.16.3 create --template demo --types ts --add prettier eslint paraglide="languageTags:en, es+demo:yes" --install pnpm ../asdf --no-dir-check --no-install
-cd ../asdf
-git add .
-pnx sv@0.16.3 add file:../svelte-meta-tags --no-git-check --no-download-check --install pnpm
-pn prepare
-cd ../svelte-meta-tags
+pnx sv add file:~/<path-to-repo>/packages/{name}
 ```
-
-# ast
-
-https://svelte.dev/playground/hello-world?version=5.56.7#H4sIAAAAAAAAA42TwW7bMAyGX4XQxQngpdiORlOgQ4v1sA3DlqGHugfFomNhMiVIVJ0g87sPiu3EHTpgJ0I_f4mfSOkoSLYoCvGAxljorDcKFqg0o1qKXNTaYBDF01HwwSVfEkQ-7bp1bhVe0HDStjLgW3pliZE4iEJch8prxzcllYx7Zz1DHalibQmMlerDYgnHlCz5fQp9SaOtshT45IE1LI4QvYF-CeubwT-kWbNBWEP2o7LM8BjhNzziFu7wBY116LOLV-HAkkqvh5LZxksKtfUtHGz0oBXKAJrYwhZlZF1Hk0Ojd807hz75JFUISu80SwO4d-g1UoUBOs3NIDB0uAU1ELRIPGP4hYfOehVgDU8jwkSe5aMw4z_tnvSHhPFthpGMt84ZXcl0qXB23o189xe-IfdcUgoeOXoChbUm_CgDfkGWG7kLi3EUp7aOp83aNirTJcaldUifvHRNMU2y5PR2Csg63AbNOIGVHL0pgLCDn98_L6I3Kye5SU8oT_NdWa93mparxmN93jOHeQun5FTjq2xTxb-72Y-RO82MfoZYSa82A2aIbSv9IfvvksOp_bKk_tRRur46v3ORC8Y9i4J9xD7_xz-SQdUrDq8_0UWc_aDX5z3ngqU2nSYlilqagP0fbTWwGtIDAAA
-
-## best practice
-
-think in `sv add` mindset

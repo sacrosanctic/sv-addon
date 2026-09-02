@@ -1,0 +1,7 @@
+{
+	"$schema": "../../../../node_modules//.cache/sv-addon/source.schema.json",
+	"repo": "michael/editable",
+	"dir": "src",
+	"defaultRef": "stable",
+	"exclude": ["**/*.test.ts"]
+}

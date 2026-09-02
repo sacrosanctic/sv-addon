@@ -1,0 +1,48 @@
+{
+	"name": "@sv-addon/editable",
+	"version": "0.0.1",
+	"type": "module",
+	"scripts": {
+		"build": "tsdown",
+		"demo-add": "pnpm build && sv add file:../ --cwd demo --no-git-check --no-install",
+		"demo-add:ci": "pnpm build && sv add file:../ --cwd demo --no-git-check --no-download-check --no-install",
+		"demo-create": "sv create demo --types ts --template minimal --no-add-ons --no-install",
+		"prepublishOnly": "npm run build",
+		"publint": "publint",
+		"sync-template": "sv-addon-sync-template"
+	},
+	"exports": {
+		".": {
+			"default": "./dist/index.mjs"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"devDependencies": {
+		"@sv-addon/utils": "workspace:*",
+		"@sveltejs/sv-utils": "catalog:addons",
+		"@types/node": "catalog:types",
+		"publint": "catalog:ci",
+		"sv": "catalog:addons",
+		"tsdown": "catalog:ci"
+	},
+	"peerDependencies": {
+		"sv": "catalog:addons"
+	},
+	"license": "MIT",
+	"keywords": [
+		"sv-add",
+		"svelte",
+		"sveltekit"
+	],
+	"description": "sv add-on that scaffolds editable component templates",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/sacrosanctic/sv-addon.git",
+		"directory": "packages/editable"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}

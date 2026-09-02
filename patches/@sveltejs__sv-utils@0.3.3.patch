@@ -1,0 +1,86 @@
+diff --git a/dist/index.d.mts b/dist/index.d.mts
+index 214ffafe9146ccc984d92160378abf6d077b0309..df8c2354063696bb803edc52b1fd29eb19aa21b6 100644
+--- a/dist/index.d.mts
++++ b/dist/index.d.mts
+@@ -644,18 +644,19 @@ declare namespace pnpm_d_exports {
+ * Returns a TransformFn for `pnpm-workspace.yaml` that adds packages to the
+ * pnpm "allow builds" config.
+ *
+-* The helper detects the installed pnpm version (via `pnpm --version`) and:
+-* - on pnpm `>= 11` writes to the unified `allowBuilds` map (`{ pkg: true }`),
+-*   migrating any legacy `onlyBuiltDependencies` list into the map;
+-* - on pnpm `< 11` writes to the legacy `onlyBuiltDependencies` list.
+-*
+-* ```ts
+-* if (packageManager === 'pnpm') {
+-*   sv.file(file.findUp('pnpm-workspace.yaml'), pnpm.allowBuilds('my-native-dep'));
+-* }
+-* ```
+-*/
+-declare function allowBuilds(...packages: string[]): TransformFn;
++ * The helper detects the installed pnpm version (via `pnpm --version` run in
++ * `cwd`, so corepack project pins are respected) and:
++ * - on pnpm `>= 11` writes to the unified `allowBuilds` map (`{ pkg: true }`),
++ *   migrating any legacy `onlyBuiltDependencies` list into the map;
++ * - on pnpm `< 11` writes to the legacy `onlyBuiltDependencies` list.
++ *
++ * ```ts
++ * if (packageManager === 'pnpm') {
++ *   sv.file(file.findUp('pnpm-workspace.yaml'), pnpm.allowBuilds(cwd, 'my-native-dep'));
++ * }
++ * ```
++ */
++declare function allowBuilds(cwd: string, ...packages: string[]): TransformFn;
+ /**
+ * @deprecated Use {@link allowBuilds} instead.
+ */
+diff --git a/dist/index.mjs b/dist/index.mjs
+index 67ff67e22d7669c7a315ff95e6eefcca6ccd1d6a..4d389c05c1084cf5e951837bb0765e929cda8101 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -41180,9 +41180,10 @@ function packageScriptsUpsert(data, key, value, options) {
+ }
+ //#endregion
+ //#region src/pnpm-internals.ts
+-function detectPnpmMajor() {
++function detectPnpmMajor(cwd) {
+ 	try {
+ 		return coerceVersion(execSync("pnpm --version", {
++			cwd,
+ 			encoding: "utf-8",
+ 			stdio: [
+ 				"ignore",
+@@ -41403,19 +41404,20 @@ var pnpm_exports = /* @__PURE__ */ __exportAll({
+ * Returns a TransformFn for `pnpm-workspace.yaml` that adds packages to the
+ * pnpm "allow builds" config.
+ *
+-* The helper detects the installed pnpm version (via `pnpm --version`) and:
++* The helper detects the installed pnpm version (via `pnpm --version` run in
++* `cwd`, so corepack project pins are respected) and:
+ * - on pnpm `>= 11` writes to the unified `allowBuilds` map (`{ pkg: true }`),
+ *   migrating any legacy `onlyBuiltDependencies` list into the map;
+ * - on pnpm `< 11` writes to the legacy `onlyBuiltDependencies` list.
+ *
+ * ```ts
+ * if (packageManager === 'pnpm') {
+-*   sv.file(file.findUp('pnpm-workspace.yaml'), pnpm.allowBuilds('my-native-dep'));
++*   sv.file(file.findUp('pnpm-workspace.yaml'), pnpm.allowBuilds(cwd, 'my-native-dep'));
+ * }
+ * ```
+ */
+-function allowBuilds(...packages) {
+-	const major = detectPnpmMajor();
++function allowBuilds(cwd, ...packages) {
++	const major = detectPnpmMajor(cwd);
+ 	if (major !== void 0 && major < 11) return writeLegacy(packages);
+ 	return writeAllowBuilds(packages);
+ }
+@@ -41449,7 +41451,7 @@ function writeLegacy(packages) {
+ * @deprecated Use {@link allowBuilds} instead.
+ */
+ function onlyBuiltDependencies(...packages) {
+-	return allowBuilds(...packages);
++	return allowBuilds(process.cwd(), ...packages);
+ }
+ //#endregion
+ //#region src/utils.ts
