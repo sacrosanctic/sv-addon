@@ -1,14 +1,15 @@
+import { getFunctionParams, latestRange, upsertReturn } from '@sv-addon/utils'
+
 import { createPrinter, dedent, transforms, Walker } from './sv-utils.js'
-import { getFunctionParams, upsertReturn } from './utils.js'
 
 import { defineAddon, defineAddonOptions } from 'sv'
 
 export default defineAddon({
-	id: '@sv-addon/addon/svelte-meta-tags',
+	id: '@sv-addon/svelte-meta-tags',
 	options: defineAddonOptions().build(),
 
-	run: ({ directory, file, language, sv }) => {
-		sv.devDependency('svelte-meta-tags', '^5.0.0')
+	run: async ({ directory, file, language, sv }) => {
+		sv.devDependency('svelte-meta-tags', await latestRange('svelte-meta-tags'))
 
 		const componentName = 'Metatags.svelte'
 		const componentPath = `${directory.kitRoutes}/${componentName}`
@@ -35,26 +36,46 @@ export default defineAddon({
 		// ##################################
 		// import the component in root
 		// ##################################
+		const relativeComponentPath = file.getRelative({
+			from: `${directory.kitRoutes}/+layout.svelte`,
+			to: componentPath,
+		})
+
 		sv.file(
 			`${directory.kitRoutes}/+layout.svelte`,
 			transforms.svelteScript({ language }, ({ ast, js, svelte }) => {
-				const relativeComponentPath = file.getRelative({
-					from: `${directory.kitRoutes}/+layout.svelte`,
-					to: componentPath,
-				})
-				const existingImport = js.imports.find(ast.instance.content, {
-					name: 'Metatags',
-					from: relativeComponentPath,
-				})
-
-				if (existingImport.statement) return
 				js.imports.addDefault(ast.instance.content, {
 					as: 'Metatags',
 					from: relativeComponentPath,
 				})
-				svelte.addFragment(ast, '<Metatags />')
+
+				const index = ast.fragment.nodes.findIndex(
+					(node) => node.type === 'Component' && node.name === 'Metatags',
+				)
+				if (index === -1) svelte.addFragment(ast, '<Metatags />')
 			}),
 		)
+
+		// This is reference code, not actually used
+
+		// // ##################################
+		// // remove the component in root
+		// // ##################################
+
+		// sv.file(
+		// 	`${directory.kitRoutes}/+layout.svelte`,
+		// 	transforms.svelteScript({ language }, ({ ast, js }) => {
+		// 		js.imports.remove(ast.instance.content, {
+		// 			name: 'Metatags',
+		// 			from: relativeComponentPath,
+		// 		})
+
+		// 		const index = ast.fragment.nodes.findIndex(
+		// 			(node) => node.type === 'Component' && node.name === 'Metatags',
+		// 		)
+		// 		if (index !== -1) ast.fragment.nodes.splice(index, 1)
+		// 	}),
+		// )
 
 		// ##################################
 		// add types to `PageData`

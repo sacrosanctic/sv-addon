@@ -1,9 +1,11 @@
 engineStrict: true
 dedupePeers: true
-
-minimumReleaseAge: 4320
 blockExoticSubdeps: true
 strictDepBuilds: true
+
+minimumReleaseAge: 4320
+minimumReleaseAgeExclude:
+  - degit@3.9.0 # until sep 4
 
 trustPolicy: no-downgrade
 trustPolicyExclude:
@@ -17,8 +19,13 @@ packages:
   - packages/*
 
 catalogs:
+  addons:
+    '@sveltejs/sv-utils': ^0.3.3
+    sv: ^0.17.0
   ci:
+    degit: ^3.9.0
     publint: ^0.3.21
+    tsdown: ^0.22.12
     vite: ^8.0.2
   lint:
     '@eslint/js': ^10.0.1
@@ -40,6 +47,6 @@ catalogs:
     vitest: ^4.1.9
     vitest-browser-svelte: ^2.1.1
   types:
-    '@types/node': ^22
+    '@types/node': ^22.20
     globals: ^17.3.0
     typescript: ^6.0.2

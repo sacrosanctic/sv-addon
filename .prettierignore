@@ -7,3 +7,6 @@ bun.lockb
 
 # Miscellaneous
 /static/
+
+# Vendored upstream template copies (kept byte-faithful to source repo)
+packages/*/src/template/upstream/
