@@ -5,9 +5,8 @@
 	"sideEffects": false,
 	"scripts": {
 		"build": "tsdown",
-		"check": "pnpm gen:type && pnpm gen:schema && tsgo",
+		"check": "pnpm gen:schema && tsgo",
 		"publint": "publint",
-		"gen:type": "node scripts/registry-types.ts",
 		"gen:schema": "node scripts/emit-schema.ts",
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"release": "pn version patch --tag-version-prefix utils@ --message \"utils@%s\"",
@@ -30,8 +29,6 @@
 		"@typescript/native-preview": "7.0.0-dev.20260707.2",
 		"@valibot/to-json-schema": "^1.7.1",
 		"degit": "catalog:ci",
-		"openapi-fetch": "^0.17.0",
-		"openapi-typescript": "^7.13.0",
 		"publint": "catalog:ci",
 		"sucrase": "^3.35.1",
 		"tsdown": "catalog:ci",
@@ -64,8 +61,8 @@
 		"@jridgewell/sourcemap-codec": "1.5.5",
 		"@jridgewell/trace-mapping": "0.3.31",
 		"lines-and-columns": "1.2.4",
-		"openapi-fetch": "0.17.0",
 		"sucrase": "3.35.1",
-		"ts-interface-checker": "0.1.13"
+		"ts-interface-checker": "0.1.13",
+		"wellcrafted": "0.42.0"
 	}
 }
