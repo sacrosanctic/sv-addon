@@ -1,43 +1,24 @@
 {
-	"name": "@sacrosanctic/svelte-meta-tags",
-	"description": "sv add-on for svelte-meta-tags SEO component",
-	"version": "0.0.1",
+	"name": "sv-addon",
 	"type": "module",
-	"license": "MIT",
 	"scripts": {
-		"demo-create": "sv create demo --types ts --template minimal --no-add-ons --no-install",
-		"demo-add": "pnpm build && sv add file:../ --cwd demo --no-git-check --no-install",
-		"demo-add:ci": "pnpm build && sv add file:../=title:My+Site&description:A+great+site --cwd demo --no-git-check --no-download-check --no-install",
-		"build": "tsdown",
-		"prepublishOnly": "npm run build",
-		"test": "vitest run"
+		"format": "prettier --write . && eslint . --fix",
+		"knip": "knip",
+		"knip-fix": "knip --fix",
+		"lint": "prettier --check . && eslint ."
 	},
-	"files": [
-		"dist"
-	],
-	"exports": {
-		".": {
-			"default": "./dist/index.mjs"
-		}
-	},
-	"publishConfig": {
-		"access": "public"
-	},
-	"peerDependencies": {
-		"sv": "^0.16.3"
-	},
+	"packageManager": "pnpm@11.15.1",
 	"devDependencies": {
-		"@playwright/test": "^1.60.0",
-		"@sveltejs/sv-utils": "^0.3.1",
-		"@types/node": "^25.9.1",
-		"sv": "^0.16.3",
-		"tsdown": "^0.22.1",
-		"unrun": "^0.2.39",
-		"vitest": "^4.1.8"
-	},
-	"keywords": [
-		"sv-add",
-		"svelte",
-		"sveltekit"
-	]
+		"@eslint/js": "catalog:lint",
+		"@types/node": "catalog:types",
+		"eslint": "catalog:lint",
+		"eslint-config-prettier": "catalog:lint",
+		"eslint-plugin-jsonc": "catalog:lint",
+		"eslint-plugin-perfectionist": "catalog:lint",
+		"globals": "catalog:types",
+		"knip": "catalog:lint",
+		"prettier": "catalog:lint",
+		"prettier-plugin-svelte": "catalog:lint",
+		"typescript": "catalog:types"
+	}
 }
