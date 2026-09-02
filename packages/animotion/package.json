@@ -10,6 +10,7 @@
 		"prepublishOnly": "npm run build",
 		"publint": "publint",
 		"sync-template": "node ../utils/scripts/sync-template.ts",
+		"release": "pn version patch --tag-version-prefix animotion@ --message \"animotion@%s\"",
 		"test": "vitest run"
 	},
 	"exports": {
