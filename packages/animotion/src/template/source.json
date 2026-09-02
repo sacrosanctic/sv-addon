@@ -1,0 +1,48 @@
+{
+	"$schema": "../../../../node_modules/.cache/sv-addon/source.schema.json",
+	"repo": "animotionjs/cli",
+	"dir": "template",
+	"defaultRef": "main",
+	"exclude": [
+		".npmrc",
+		".prettierignore",
+		"AGENTS.md",
+		"eslint.config.js",
+		"ignore",
+		"package.json",
+		"prettier.config.js",
+		"tsconfig.json",
+		"vite.config.ts",
+		"static/**",
+		"src/app.d.ts",
+		"src/app.html",
+		"src/lib/index.ts",
+		"src/lib/assets/**"
+	],
+	"moves": {
+		"src/styles/theme.css": "src/routes/layout.css"
+	},
+	"replaces": [
+		{
+			"files": "src/routes/+layout.svelte",
+			"pattern": "import '\\.\\./styles/theme\\.css';",
+			"replacement": "import './layout.css'"
+		}
+	],
+	"lastSync": {
+		"ref": "main",
+		"commit": "809db0c816bc9b1361b7a6661cb5d70242d4fd2a",
+		"syncedAt": "2026-09-02T03:48:28.422Z",
+		"files": [
+			"README.md",
+			"src/lib/config/configure.ts",
+			"src/lib/config/plugins.ts",
+			"src/lib/config/scenes.ts",
+			"src/routes/+layout.svelte",
+			"src/routes/[[scene]]/+page.svelte",
+			"src/routes/layout.css",
+			"src/routes/timeline/[[scene]]/+page.svelte",
+			"src/scenes/01-intro.svelte"
+		]
+	}
+}

@@ -5,11 +5,12 @@
 	"scripts": {
 		"build": "tsdown",
 		"demo-add": "pnpm build && sv add file:../ --cwd demo --no-git-check --no-install",
-		"demo-add:ci": "pnpm build && sv add file:../=title:My+Site&description:A+great+site --cwd demo --no-git-check --no-download-check --no-install",
+		"demo-add:ci": "pnpm build && sv add file:../ --cwd demo --no-git-check --no-download-check --no-install",
 		"demo-create": "sv create demo --types ts --template minimal --no-add-ons --no-install",
 		"format": "prettier --write .",
 		"lint": "prettier --check . && eslint .",
 		"prepublishOnly": "npm run build",
+		"publint": "publint",
 		"test": "vitest run"
 	},
 	"exports": {
@@ -23,22 +24,24 @@
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
 		"@playwright/test": "^1.60.0",
-		"@sveltejs/sv-utils": "^0.3.1",
-		"@types/node": "^22",
+		"@sv-addon/utils": "workspace:*",
+		"@sveltejs/sv-utils": "catalog:addons",
+		"@types/node": "catalog:types",
 		"eslint": "^10.4.1",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.19.0",
 		"globals": "^17.6.0",
 		"prettier": "^3.8.3",
 		"prettier-plugin-svelte": "^4.1.0",
-		"sv": "^0.16.3",
-		"tsdown": "^0.22.1",
+		"publint": "catalog:ci",
+		"sv": "catalog:addons",
+		"tsdown": "catalog:ci",
 		"unrun": "^0.2.39",
 		"vitest": "^4.1.8",
 		"zimmerframe": "^1.1.4"
 	},
 	"peerDependencies": {
-		"sv": "^0.16.3"
+		"sv": "catalog:addons"
 	},
 	"license": "MIT",
 	"keywords": [
@@ -47,6 +50,11 @@
 		"sveltekit"
 	],
 	"description": "sv add-on for svelte-meta-tags SEO component",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/sacrosanctic/sv-addon.git",
+		"directory": "packages/svelte-meta-tags"
+	},
 	"publishConfig": {
 		"access": "public"
 	}

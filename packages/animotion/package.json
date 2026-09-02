@@ -1,0 +1,51 @@
+{
+	"name": "@sv-addon/animotion",
+	"version": "0.0.7",
+	"type": "module",
+	"scripts": {
+		"build": "tsdown",
+		"demo-add": "pnpm build && sv add file:../ --cwd demo --no-git-check --no-install",
+		"demo-add:ci": "pnpm build && sv add file:../ --cwd demo --no-git-check --no-download-check --no-install",
+		"demo-create": "sv create demo --types ts --template minimal --no-add-ons --no-install",
+		"prepublishOnly": "npm run build",
+		"publint": "publint",
+		"sync-template": "sv-addon-sync-template",
+		"test": "vitest run"
+	},
+	"exports": {
+		".": {
+			"default": "./dist/index.mjs"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"devDependencies": {
+		"@playwright/test": "^1.60.0",
+		"@sv-addon/utils": "workspace:*",
+		"@sveltejs/sv-utils": "catalog:addons",
+		"@types/node": "catalog:types",
+		"publint": "catalog:ci",
+		"sv": "catalog:addons",
+		"tsdown": "catalog:ci",
+		"vitest": "^4.1.8"
+	},
+	"peerDependencies": {
+		"sv": "catalog:addons"
+	},
+	"license": "MIT",
+	"keywords": [
+		"sv-add",
+		"svelte",
+		"sveltekit"
+	],
+	"description": "sv add-on for Animotion presentations",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/sacrosanctic/sv-addon.git",
+		"directory": "packages/animotion"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}

@@ -1,22 +1,28 @@
-import { js } from './sv-utils.js'
+import { js } from '@sveltejs/sv-utils'
 
-/** @param {import('estree').Expression | import('estree').SpreadElement} argument */
-export function createReturnStatement(argument) {
-	return /** @type {import('estree').ReturnStatement} */ ({
+import type {
+	BlockStatement,
+	ExportNamedDeclaration,
+	Expression,
+	Pattern,
+	Property,
+	ReturnStatement,
+	SpreadElement,
+} from 'estree'
+
+const createReturnStatement = (argument: Expression | SpreadElement) => {
+	return {
 		argument,
 		type: 'ReturnStatement',
-	})
+	} as ReturnStatement
 }
 
 /**
  * Extract function params from an ExportNamedDeclaration,
  * regardless of whether the export wraps a direct function declaration
  * or a variable declaration holding a function/arrow expression.
- *
- * @param {import('estree').ExportNamedDeclaration} node
- * @returns {import('estree').Pattern[] | undefined}
  */
-export function getFunctionParams(node) {
+export const getFunctionParams = (node: ExportNamedDeclaration): Pattern[] | undefined => {
 	const decl = node.declaration
 	if (!decl) return
 
@@ -36,17 +42,18 @@ export function getFunctionParams(node) {
 
 /**
  * This assumes an object return, which is going to be true most of the time...
- * @param {import('estree').ReturnStatement | undefined} node
- * @param {import('estree').Expression | import('estree').SpreadElement} item
- * @param {import('estree').BlockStatement} fallback
  */
-export function upsertReturn(node, item, fallback) {
+export const upsertReturn = (
+	node: ReturnStatement | undefined,
+	item: Property | SpreadElement,
+	fallback: BlockStatement,
+) => {
 	if (node) {
 		if (node.argument?.type === 'ObjectExpression') {
-			node.argument.properties.unshift(/** @type {any} */ (item))
+			node.argument.properties.unshift(item)
 		} else {
 			const merged = js.object.create({})
-			merged.properties.push(/** @type {any} */ (item))
+			merged.properties.push(item)
 			if (node.argument) {
 				merged.properties.push(js.common.createSpread(node.argument))
 			}
@@ -54,7 +61,7 @@ export function upsertReturn(node, item, fallback) {
 		}
 	} else {
 		const object = js.object.create({})
-		object.properties.push(/** @type {any} */ (item))
+		object.properties.push(item)
 		fallback.body.push(createReturnStatement(object))
 	}
 }

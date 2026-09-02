@@ -16,7 +16,7 @@ const { test, testCases } = setupTest(
 		filter: (testCase) => testCase.variant.includes('kit'),
 		kinds: [
 			{
-				options: { '@sv-addon/addon/svelte-meta-tags': '' },
+				options: { '@sv-addon/svelte-meta-tags': '' },
 				type: 'default',
 			},
 		],
@@ -25,7 +25,7 @@ const { test, testCases } = setupTest(
 
 test.concurrent.for(testCases)(
 	'@sv-addon/svelte-meta-tags $kind.type $variant',
-	async (testCase, { page, ...ctx }) => {
+	async (testCase, ctx) => {
 		const cwd = ctx.cwd(testCase)
 
 		// Verify Metatags.svelte component

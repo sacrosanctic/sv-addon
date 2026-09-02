@@ -1,0 +1,23 @@
+{
+	"compilerOptions": {
+		"moduleResolution": "nodenext",
+		"module": "nodenext",
+		"strict": true,
+		"noEmit": true,
+		"skipLibCheck": true,
+		"exactOptionalPropertyTypes": true,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"resolveJsonModule": true,
+		"sourceMap": true,
+		"tsBuildInfoFile": "node_modules/.cache/tsbuildinfo",
+		"verbatimModuleSyntax": true,
+		"isolatedModules": true,
+		"erasableSyntaxOnly": true,
+		"checkJs": true,
+		"rewriteRelativeImportExtensions": true,
+		"types": ["node"]
+	},
+	"exclude": ["dist", "node_modules"],
+	"include": ["src/**/*.ts"]
+}
