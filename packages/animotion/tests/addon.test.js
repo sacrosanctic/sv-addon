@@ -32,6 +32,10 @@ test.concurrent.for(testCases)(
 		const layoutPath = path.resolve(cwd, 'src/routes/+layout.svelte')
 		expect(fs.existsSync(layoutPath)).toBe(true)
 
+		// Verify the placeholder root page was removed so `[[scene]]` serves `/`
+		expect(fs.existsSync(path.resolve(cwd, 'src/routes/+page.svelte'))).toBe(false)
+		expect(fs.existsSync(path.resolve(cwd, 'src/routes/[[scene]]/+page.svelte'))).toBe(true)
+
 		// Verify dependencies and the node engine were added
 		const pkg = JSON.parse(fs.readFileSync(path.resolve(cwd, 'package.json'), 'utf8'))
 		expect(pkg.dependencies['@animotion/core']).toBe('next')

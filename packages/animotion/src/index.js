@@ -1,3 +1,4 @@
+import fs from 'node:fs'
 import path from 'node:path'
 
 import { pnpm, transforms } from './sv-utils.js'
@@ -22,6 +23,11 @@ export default defineAddon({
 		const type = getType(file.typeConfig)
 		const { generated } = templatePaths(path.join(import.meta.dirname, TEMPLATE_SOURCE))
 		writeTemplate(type, generated, sv.file)
+
+		// the upstream template has no root `+page.svelte`: the optional `[[scene]]`
+		// param serves `/`. Remove the scaffolded placeholder so it doesn't shadow the deck.
+		// a bandait until i can think of a better solution
+		fs.rmSync(path.join(cwd, 'src/routes/+page.svelte'), { force: true })
 
 		sv.file('AGENTS.md', (content) => {
 			if (!content) return false

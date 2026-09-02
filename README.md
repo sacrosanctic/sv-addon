@@ -1,4 +1,4 @@
-This repo is a collection of [community add-ons](https://svelte.dev/docs/cli/community) for Svelte. They can be found on [npmx](https://npmx.dev/search?q=keyword:sv-add)
+This repo is a collection of [community add-ons](https://svelte.dev/docs/cli/community) for Svelte. They can be found on [npmx](https://npmx.dev/search?q=keyword:sv-add).
 
 # Why this repo exists
 
