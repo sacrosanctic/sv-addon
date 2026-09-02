@@ -2,6 +2,7 @@
 	"name": "@sv-addon/utils",
 	"version": "0.0.1",
 	"type": "module",
+	"sideEffects": false,
 	"scripts": {
 		"build": "tsdown",
 		"check": "pnpm gen:type && pnpm gen:schema && tsgo",
