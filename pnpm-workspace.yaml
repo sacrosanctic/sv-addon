@@ -20,8 +20,8 @@ packages:
 
 catalogs:
   addons:
-    '@sveltejs/sv-utils': ^0.3.3
-    sv: ^0.17.0
+    '@sveltejs/sv-utils': ^1.0.2
+    sv: ^1.1.1
   ci:
     degit: ^3.9.0
     publint: ^0.3.21
