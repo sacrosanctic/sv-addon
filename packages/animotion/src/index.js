@@ -17,7 +17,7 @@ export default defineAddon({
 		sv.devDependency('@fontsource-variable/jetbrains-mono', '^5.3.0')
 		sv.devDependency('@fontsource/atkinson-hyperlegible', '^5.3.0')
 		if (packageManager === 'pnpm') {
-			sv.file(file.findUp('pnpm-workspace.yaml'), pnpm.allowBuilds(cwd, 'ffmpeg-static'))
+			sv.file(file.findUp('pnpm-workspace.yaml'), pnpm.allowBuilds({ cwd, packages: ['ffmpeg-static'] }))
 		}
 
 		const type = getType(file.typeConfig)

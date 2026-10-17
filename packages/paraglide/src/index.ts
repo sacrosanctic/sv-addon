@@ -1,0 +1,429 @@
+import { log } from '@clack/prompts'
+import {
+	color,
+	createPrinter,
+	defineDemoPage,
+	defineEnv,
+	dedent,
+	isKit3,
+	resolveLibPrefix,
+	type SvelteAst,
+	transforms,
+} from '@sveltejs/sv-utils'
+
+import { defineAddon, defineAddonOptions } from 'sv'
+
+const DEFAULT_INLANG_PROJECT = {
+	$schema: 'https://inlang.com/schema/project-settings',
+	modules: [
+		'https://cdn.jsdelivr.net/npm/@inlang/plugin-message-format@4/dist/index.js',
+		'https://cdn.jsdelivr.net/npm/@inlang/plugin-m-function-matcher@2/dist/index.js',
+	],
+	'plugin.inlang.messageFormat': {
+		pathPattern: './messages/{locale}.json',
+	},
+}
+
+export type ParaglideOptions = { languageTags: string; demo: boolean; reactive: boolean }
+
+const options = defineAddonOptions()
+	.add('languageTags', {
+		question: `Which languages would you like to support? ${color.optional('(e.g. en,de-ch)')}`,
+		type: 'string',
+		default: 'en, es',
+		validate(input) {
+			if (!input) return
+
+			const { invalidLanguageTags, validLanguageTags } = parseLanguageTagInput(input)
+
+			if (invalidLanguageTags.length > 0) {
+				if (invalidLanguageTags.length === 1) {
+					return `The input "${invalidLanguageTags[0]}" is not a valid IETF BCP 47 language tag`
+				} else {
+					const listFormat = new Intl.ListFormat('en', { style: 'long', type: 'conjunction' })
+					return `The inputs ${listFormat.format(invalidLanguageTags.map((x) => `"${x}"`))} are not valid BCP47 language tags`
+				}
+			}
+			if (validLanguageTags.length === 0)
+				return 'Please enter at least one valid BCP47 language tag. Eg: en'
+
+			return undefined
+		},
+	})
+	.add('demo', {
+		type: 'boolean',
+		default: true,
+		question: 'Do you want to include a demo?',
+	})
+	.add('reactive', {
+		type: 'boolean',
+		default: false,
+		question: 'Do you want reactive language switching?',
+	})
+	.build()
+
+const addon = defineAddon({
+	id: '@sv-addon/paraglide',
+	shortDescription: 'i18n',
+	homepage: 'https://inlang.com/m/gerre34r/library-inlang-paraglideJs',
+	options,
+	setup: ({ isKit, unsupported, runsAfter }) => {
+		if (!isKit) unsupported('Requires SvelteKit')
+		// it picks the kit-3 shape off the version `experimental` writes
+		runsAfter('experimental')
+	},
+	run: ({ sv, options, cwd, file, language, directory, dependencyVersion }) => {
+		const [ts] = createPrinter(language === 'ts')
+		const kitRange = dependencyVersion('@sveltejs/kit')
+		const lib = resolveLibPrefix(kitRange)
+		// kit 3 renamed the `Pathname` route type to `Path`
+		const pathType = isKit3(kitRange) ? 'Path' : 'Pathname'
+		const paraglideOutDir = `${directory.lib}/paraglide`
+		const env = defineEnv({ sv, cwd, dependencyVersion })
+
+		sv.devDependency('@inlang/paraglide-js', '^2.18.2')
+
+		// add the vite plugin
+		sv.file(
+			file.viteConfig,
+			transforms.script(({ ast, js }) => {
+				const vitePluginName = 'paraglideVitePlugin'
+				const strategyLine = options.reactive ? `\n\t\t\t\tstrategy: ['url'],` : ''
+				js.imports.addNamed(ast, { imports: [vitePluginName], from: '@inlang/paraglide-js' })
+				js.vite.addPlugin(ast, {
+					code: `${vitePluginName}({
+					project: './project.inlang',
+					outdir: './${paraglideOutDir}',${strategyLine}
+					emitTsDeclarations: true
+				})`,
+				})
+			}),
+		)
+
+		// reroute hook
+		sv.file(
+			`src/hooks.${language}`,
+			transforms.script(({ ast, comments, js }) => {
+				js.imports.addNamed(ast, {
+					from: `${lib}/paraglide/runtime.js`,
+
+					imports: ['deLocalizeUrl'],
+				})
+
+				const expression = js.common.parseExpression(
+					'(request) => deLocalizeUrl(request.url).pathname',
+				)
+				const rerouteIdentifier = js.variables.declaration(ast, {
+					kind: 'const',
+					name: `reroute${language === 'ts' ? ': Reroute' : ''}`,
+					value: expression,
+				})
+
+				const existingExport = js.exports.createNamed(ast, {
+					name: 'reroute',
+					fallback: rerouteIdentifier,
+				})
+				if (existingExport.declaration !== rerouteIdentifier) {
+					log.warn('Adding the reroute hook automatically failed. Add it manually')
+				}
+
+				if (language === 'ts') {
+					js.imports.addNamed(ast, {
+						from: '@sveltejs/kit/hooks',
+						imports: ['Reroute'],
+						isType: true,
+					})
+				} else {
+					js.common.addJsDocTypeComment(existingExport, comments, {
+						type: "import('@sveltejs/kit/hooks').Reroute",
+					})
+				}
+			}),
+		)
+
+		// handle hook
+		sv.file(
+			`src/hooks.server.${language}`,
+			transforms.script(({ ast, comments, js }) => {
+				js.imports.addNamed(ast, {
+					from: `${lib}/paraglide/server.js`,
+					imports: ['paraglideMiddleware'],
+				})
+				js.imports.addNamed(ast, {
+					from: `${lib}/paraglide/runtime.js`,
+					imports: ['getTextDirection'],
+				})
+
+				const hookHandleContent = `({ event, resolve }) => paraglideMiddleware(event.request, ({ request, locale }) => {
+		return resolve({ ...event, request }, {
+			transformPageChunk: ({ html }) => html.replace('%paraglide.lang%', locale).replace('%paraglide.dir%', getTextDirection(locale))
+		});
+	});`
+				js.kit.addHooksHandle(ast, {
+					language,
+					newHandleName: 'handleParaglide',
+					handleContent: hookHandleContent,
+					comments,
+				})
+			}),
+		)
+
+		if (options.reactive) {
+			// paraglide locale class
+			sv.file(
+				`${directory.lib}/paraglide.svelte.${language}`,
+				transforms.script(({ ast, comments, js }) => {
+					js.imports.addNamed(ast, {
+						imports: [
+							'baseLocale',
+							'localizeUrl',
+							'overwriteGetLocale',
+							'overwriteSetLocale',
+							'toLocale',
+						],
+						from: '$lib/paraglide/runtime',
+					})
+					js.imports.addNamed(ast, { imports: ['page'], from: '$app/state' })
+					js.imports.addNamed(ast, { imports: ['goto'], from: '$app/navigation' })
+					env.importEnv(ast, js, ['browser'])
+					if (language === 'ts')
+						js.imports.addNamed(ast, {
+							imports: { Locale: '_Locale' },
+							from: '$lib/paraglide/runtime',
+							isType: true,
+						})
+
+					const codeBlock = dedent`
+						export class Locale {
+							#current${ts(': _Locale')} = $state(toLocale(browser && document.querySelector('html')?.lang) ?? baseLocale);
+							constructor() {
+								overwriteGetLocale(() => this.#current);
+								overwriteSetLocale((locale) => {
+									this.#current = locale;
+									goto(localizeUrl(page.url.pathname, { locale }).href);
+								});
+							}
+						}`
+
+					js.common.appendFromString(ast, { code: codeBlock, comments })
+				}),
+			)
+
+			// client init hook
+			sv.file(
+				`src/hooks.client.${language}`,
+				transforms.script(({ ast, comments, js }) => {
+					js.imports.addNamed(ast, { imports: ['Locale'], from: '$lib/paraglide.svelte' })
+					if (language === 'ts')
+						js.imports.addNamed(ast, {
+							imports: ['ClientInit'],
+							from: '@sveltejs/kit',
+							isType: true,
+						})
+
+					const init = dedent`
+						export const init${ts(': ClientInit')} = () => {
+							new Locale()
+						}`
+
+					js.common.appendFromString(ast, { code: init, comments })
+				}),
+			)
+		}
+
+		// add the lang and dir attributes placeholder to app.html
+		sv.file(
+			'src/app.html',
+			transforms.html(({ ast, html }) => {
+				const htmlNode = ast.nodes.find(
+					(child): child is SvelteAst.RegularElement =>
+						child.type === 'RegularElement' && child.name === 'html',
+				)
+				if (!htmlNode) {
+					log.warn(
+						"Could not find <html> node in app.html. You'll need to add the language placeholder manually",
+					)
+					return false
+				}
+				html.addAttribute(htmlNode, 'lang', '%paraglide.lang%')
+				html.addAttribute(htmlNode, 'dir', '%paraglide.dir%')
+			}),
+		)
+
+		// reused by prettier and eslint
+		sv.file(
+			file.gitignore,
+			transforms.text(({ content, text }) => {
+				if (!content) return false
+
+				content = text.upsert(content, paraglideOutDir, { comment: 'Paraglide' })
+				content = text.upsert(content, 'project.inlang/cache/')
+
+				return content
+			}),
+		)
+
+		const { validLanguageTags } = parseLanguageTagInput(options.languageTags)
+
+		sv.file(
+			'project.inlang/settings.json',
+			transforms.json(({ data }) => {
+				if (Object.keys(data).length > 0) return false
+
+				for (const key in DEFAULT_INLANG_PROJECT) {
+					data[key] = DEFAULT_INLANG_PROJECT[key as keyof typeof DEFAULT_INLANG_PROJECT]
+				}
+				const baseLocale = validLanguageTags[0]
+
+				data.baseLocale = baseLocale
+				data.locales = validLanguageTags
+			}),
+		)
+
+		sv.file(
+			`${directory.kitRoutes}/+layout.svelte`,
+			transforms.svelteScript({ language }, ({ ast, svelte, js }) => {
+				js.imports.addNamed(ast.instance.content, {
+					imports: ['locales', 'localizeHref'],
+					from: `${lib}/paraglide/runtime.js`,
+				})
+				js.imports.addNamed(ast.instance.content, { imports: ['page'], from: '$app/state' })
+				js.imports.addNamed(ast.instance.content, { imports: ['resolve'], from: '$app/paths' })
+				if (language === 'ts') {
+					js.imports.addNamed(ast.instance.content, {
+						imports: [pathType],
+						from: '$app/types',
+						isType: true,
+					})
+				}
+				svelte.addFragment(
+					ast,
+					dedent`
+						<div style="display:none">
+							{#each locales as locale (locale)}
+								<a href={resolve(localizeHref(page.url.pathname, { locale })${ts(` as ${pathType}`)})}>{locale}</a>
+							{/each}
+						</div>`,
+					{ language },
+				)
+			}),
+		)
+
+		if (options.demo) {
+			const demo = defineDemoPage('paraglide', language, directory.kitRoutes)
+			sv.file(...demo.links)
+			sv.file(...demo.layout)
+
+			// add usage example
+			sv.file(
+				`${demo.addonPath}/+page.svelte`,
+				transforms.svelteScript({ language }, ({ ast, svelte, js }) => {
+					js.imports.addNamed(ast.instance.content, {
+						imports: { m: 'm' },
+						from: `${lib}/paraglide/messages.js`,
+					})
+					js.imports.addNamed(ast.instance.content, {
+						imports: [...(options.reactive ? ['locales', 'localizeHref'] : []), 'setLocale'],
+						from: `${lib}/paraglide/runtime.js`,
+					})
+					if (options.reactive) {
+						js.imports.addNamed(ast.instance.content, { imports: ['page'], from: '$app/state' })
+						js.imports.addNamed(ast.instance.content, { imports: ['resolve'], from: '$app/paths' })
+						if (language === 'ts') {
+							js.imports.addNamed(ast.instance.content, {
+								imports: [pathType],
+								from: '$app/types',
+								isType: true,
+							})
+						}
+					}
+
+					// add localized message
+					let templateCode = "<h1>{m.hello_world({ name: 'SvelteKit User' })}</h1>"
+
+					// add links to other localized pages, the first one is the default
+					// language, thus it does not require any localized route
+					const links = validLanguageTags
+						.map((x) => `<button onclick={() => setLocale('${x}')}>${x}</button>`)
+						.join('')
+					templateCode += `<div>${links}</div>`
+
+					if (options.reactive) {
+						// add reactive language links and buttons
+						templateCode += dedent`
+						<div>
+							<p>Links:</p>
+							<ul>
+								{#each locales as locale (locale)}
+									<li><a href={resolve(localizeHref(page.url.href, { locale })${ts(` as ${pathType}`)})}>{locale}</a></li>
+								{/each}
+							</ul>
+							<p>Buttons:</p>
+							<ul>
+								{#each locales as locale (locale)}
+									<li><button onclick={() => setLocale(locale)}>{locale}</button></li>
+								{/each}
+							</ul>
+						</div>`
+					}
+
+					templateCode +=
+						'<p>If you use VSCode, install the <a href="https://marketplace.visualstudio.com/items?itemName=inlang.vs-code-extension" target="_blank">Sherlock i18n extension</a> for a better i18n experience.</p>'
+
+					svelte.addFragment(ast, templateCode, { language })
+				}),
+			)
+		}
+
+		for (const languageTag of validLanguageTags) {
+			sv.file(
+				`messages/${languageTag}.json`,
+				transforms.json(({ data }) => {
+					data['$schema'] = 'https://inlang.com/schema/inlang-message-format'
+					data.hello_world = `Hello, {name} from ${languageTag}!`
+				}),
+			)
+		}
+	},
+
+	nextSteps: ({ options }) => {
+		return [
+			`Edit your messages in ${color.path(DEFAULT_INLANG_PROJECT['plugin.inlang.messageFormat'].pathPattern)}`,
+			options.demo && `Visit ${color.route('/demo/paraglide')} route to view the demo`,
+		].filter((line): line is string => Boolean(line))
+	},
+})
+
+export default addon
+
+const isValidLanguageTag = (languageTag: string): boolean =>
+	// Regex vendored in from https://github.com/opral/monorepo/blob/94c2298cc1da5378b908e4c160b0fa71a45caadb/inlang/source-code/versioned-interfaces/language-tag/src/interface.ts#L16
+	RegExp(
+		'^((?<grandfathered>(en-GB-oed|i-ami|i-bnn|i-default|i-enochian|i-hak|i-klingon|i-lux|i-mingo|i-navajo|i-pwn|i-tao|i-tay|i-tsu|sgn-BE-FR|sgn-BE-NL|sgn-CH-DE)|(art-lojban|cel-gaulish|no-bok|no-nyn|zh-guoyu|zh-hakka|zh-min|zh-min-nan|zh-xiang))|((?<language>([A-Za-z]{2,3}(-(?<extlang>[A-Za-z]{3}(-[A-Za-z]{3}){0,2}))?))(-(?<script>[A-Za-z]{4}))?(-(?<region>[A-Za-z]{2}|[0-9]{3}))?(-(?<variant>[A-Za-z0-9]{5,8}|[0-9][A-Za-z0-9]{3}))*))$',
+	).test(languageTag)
+
+function parseLanguageTagInput(input: string): {
+	validLanguageTags: string[]
+	invalidLanguageTags: string[]
+} {
+	const probablyLanguageTags = new Set(
+		input
+			.replace(/[,\s:]/g, ' ') // replace common separators with spaces
+			.split(' ')
+			.filter(Boolean) // remove empty segments
+			.map((tag) => tag.toLowerCase()),
+	)
+
+	const validLanguageTags: string[] = []
+	const invalidLanguageTags: string[] = []
+
+	for (const tag of probablyLanguageTags) {
+		if (isValidLanguageTag(tag)) validLanguageTags.push(tag)
+		else invalidLanguageTags.push(tag)
+	}
+
+	return {
+		validLanguageTags,
+		invalidLanguageTags,
+	}
+}

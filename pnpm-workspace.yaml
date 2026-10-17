@@ -50,6 +50,3 @@ catalogs:
     '@types/node': ^22.20
     globals: ^17.3.0
     typescript: ^6.0.2
-
-patchedDependencies:
-  '@sveltejs/sv-utils@0.3.3': patches/@sveltejs__sv-utils@0.3.3.patch
