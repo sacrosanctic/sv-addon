@@ -57,7 +57,7 @@ const options = defineAddonOptions()
 	})
 	.add('reactive', {
 		type: 'boolean',
-		default: false,
+		default: true,
 		question: 'Do you want reactive language switching?',
 	})
 	.build()
@@ -209,7 +209,7 @@ const addon = defineAddon({
 								})
 
 								overwriteSetLocale((locale) => {
-									goto(resolve(localizeHref(page.url.href, { locale })${ts(` as ${pathType}`)}))
+									goto(resolve(localizeHref(page.url.pathname + page.url.search + page.url.hash, { locale })${ts(` as ${pathType}`)}))
 								})
 							}
 						}
@@ -387,7 +387,7 @@ const addon = defineAddon({
 							<p>Links:</p>
 							<ul>
 								{#each locales as locale (locale)}
-									<li><a href={resolve(localizeHref(page.url.href, { locale })${ts(` as ${pathType}`)})}>{locale}</a></li>
+									<li><a href={resolve(localizeHref(page.url.pathname + page.url.search + page.url.hash, { locale })${ts(` as ${pathType}`)})}>{locale}</a></li>
 								{/each}
 							</ul>
 							<p>Buttons:</p>
