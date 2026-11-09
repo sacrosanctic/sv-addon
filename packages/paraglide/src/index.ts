@@ -169,51 +169,74 @@ const addon = defineAddon({
 		)
 
 		if (options.reactive) {
-			// paraglide locale class
-			sv.file(
-				`${directory.lib}/paraglide.svelte.${language}`,
-				transforms.script(({ ast, comments, js }) => {
-					js.imports.addNamed(ast, {
-						imports: [
-							'baseLocale',
-							'localizeUrl',
-							'overwriteGetLocale',
-							'overwriteSetLocale',
-							'toLocale',
-						],
-						from: '$lib/paraglide/runtime',
-					})
-					js.imports.addNamed(ast, { imports: ['page'], from: '$app/state' })
-					js.imports.addNamed(ast, { imports: ['goto'], from: '$app/navigation' })
-					env.importEnv(ast, js, ['browser'])
-					if (language === 'ts')
-						js.imports.addNamed(ast, {
-							imports: { Locale: '_Locale' },
-							from: '$lib/paraglide/runtime',
-							isType: true,
-						})
+			// paraglide locale component: derives the locale from the url (the `url`
+			// strategy) and mirrors it onto <html lang dir> on the client. also hosts
+			// the hidden locale links used by static prerendering.
+			const appEnvModule = env.mode === 'declared' ? '$app/env' : '$app/environment'
+			const scriptAttrs = language === 'ts' ? ' lang="ts"' : ''
+			const pathImport = language === 'ts' ? `\n					import type { ${pathType} } from '$app/types'` : ''
 
-					const codeBlock = dedent`
-						export class Locale {
-							#current${ts(': _Locale')} = $state(toLocale(browser && document.querySelector('html')?.lang) ?? baseLocale);
-							constructor() {
-								overwriteGetLocale(() => this.#current);
+			const paraglideComponent = dedent`
+				<script${scriptAttrs} module>
+					import { browser } from '${appEnvModule}'
+					import { goto } from '$app/navigation'
+					import { resolve } from '$app/paths'
+					import { page } from '$app/state'${pathImport}
+
+					import {
+						baseLocale,
+						extractLocaleFromUrl,
+						getTextDirection,
+						locales,
+						localizeHref,
+						overwriteGetLocale,
+						overwriteSetLocale,
+					} from '${lib}/paraglide/runtime.js'
+
+					export class Locale {
+						constructor() {
+							if (browser) {
+								overwriteGetLocale(() => {
+									const locale = extractLocaleFromUrl(page.url.pathname) ?? baseLocale
+
+									const html = document.documentElement
+									if (html.lang !== locale) {
+										html.lang = locale
+										html.dir = getTextDirection(locale)
+									}
+
+									return locale
+								})
+
 								overwriteSetLocale((locale) => {
-									this.#current = locale;
-									goto(localizeUrl(page.url.pathname, { locale }).href);
-								});
+									goto(resolve(localizeHref(page.url.href, { locale })${ts(` as ${pathType}`)}))
+								})
 							}
-						}`
+						}
+					}
+				</script>
 
-					js.common.appendFromString(ast, { code: codeBlock, comments })
-				}),
+				<!-- for SSG -->
+				<div style="display:none">
+					{#each locales as locale (locale)}
+						<a href={resolve(localizeHref(page.url.pathname, { locale })${ts(` as ${pathType}`)})}>{locale}</a>
+					{/each}
+				</div>`
+
+			// a brand new file only: regenerate nothing if it already has content
+			sv.file(
+				`${directory.kitRoutes}/_assets/paraglide.svelte`,
+				(content) => content || paraglideComponent,
 			)
 
 			// client init hook
 			sv.file(
 				`src/hooks.client.${language}`,
 				transforms.script(({ ast, comments, js }) => {
-					js.imports.addNamed(ast, { imports: ['Locale'], from: '$lib/paraglide.svelte' })
+					js.imports.addNamed(ast, {
+						imports: ['Locale'],
+						from: './routes/_assets/paraglide.svelte',
+					})
 					if (language === 'ts')
 						js.imports.addNamed(ast, {
 							imports: ['ClientInit'],
@@ -283,6 +306,15 @@ const addon = defineAddon({
 		sv.file(
 			`${directory.kitRoutes}/+layout.svelte`,
 			transforms.svelteScript({ language }, ({ ast, svelte, js }) => {
+				if (options.reactive) {
+					js.imports.addDefault(ast.instance.content, {
+						from: './_assets/paraglide.svelte',
+						as: 'Paraglide',
+					})
+					svelte.addFragment(ast, '<Paraglide />', { language })
+					return
+				}
+
 				js.imports.addNamed(ast.instance.content, {
 					imports: ['locales', 'localizeHref'],
 					from: `${lib}/paraglide/runtime.js`,

@@ -65,27 +65,36 @@ test.concurrent.for(testCases)(
 		// reactive language switching
 		const reactive = testCase.kind.type === 'reactive'
 		const language = testCase.variant.split('-').at(-1) as 'ts' | 'js'
-		const localeClassPath = path.resolve(cwd, `src/lib/paraglide.svelte.${language}`)
-		expect(fs.existsSync(localeClassPath)).toBe(reactive)
+		const localeComponentPath = path.resolve(cwd, 'src/routes/_assets/paraglide.svelte')
+		expect(fs.existsSync(localeComponentPath)).toBe(reactive)
 		if (reactive) {
-			const localeClass = fs.readFileSync(localeClassPath, 'utf8')
-			expect(localeClass).toContain('class Locale')
-			expect(localeClass).toContain('$state')
-			expect(localeClass).toContain('$lib/paraglide/runtime')
+			const localeComponent = fs.readFileSync(localeComponentPath, 'utf8')
+			expect(localeComponent).toContain('class Locale')
+			expect(localeComponent).toContain('extractLocaleFromUrl')
+			expect(localeComponent).not.toContain('$state')
 
 			const hooksClient = fs.readFileSync(path.resolve(cwd, `src/hooks.client.${language}`), 'utf8')
 			expect(hooksClient).toContain('new Locale()')
+			expect(hooksClient).toContain('./routes/_assets/paraglide.svelte')
 
 			const viteConfigPath = ['ts', 'js']
 				.map((ext) => path.resolve(cwd, `vite.config.${ext}`))
 				.find((p) => fs.existsSync(p))
 			expect(fs.readFileSync(viteConfigPath!, 'utf8')).toContain("strategy: ['url']")
 
+			const layout = fs.readFileSync(path.resolve(cwd, 'src/routes/+layout.svelte'), 'utf8')
+			expect(layout).toContain('<Paraglide />')
+			expect(layout).toContain('./_assets/paraglide.svelte')
+
 			const demoPage = fs.readFileSync(
 				path.resolve(cwd, 'src/routes/demo/paraglide/+page.svelte'),
 				'utf8',
 			)
 			expect(demoPage).toContain('{#each locales as locale (locale)}')
+		} else {
+			const layout = fs.readFileSync(path.resolve(cwd, 'src/routes/+layout.svelte'), 'utf8')
+			expect(layout).toContain('display:none')
+			expect(layout).not.toContain('Paraglide')
 		}
 	},
 )
