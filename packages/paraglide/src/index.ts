@@ -373,13 +373,6 @@ const addon = defineAddon({
 					// add localized message
 					let templateCode = "<h1>{m.hello_world({ name: 'SvelteKit User' })}</h1>"
 
-					// add links to other localized pages, the first one is the default
-					// language, thus it does not require any localized route
-					const links = validLanguageTags
-						.map((x) => `<button onclick={() => setLocale('${x}')}>${x}</button>`)
-						.join('')
-					templateCode += `<div>${links}</div>`
-
 					if (options.reactive) {
 						// add reactive language links and buttons
 						templateCode += dedent`
