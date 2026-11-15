@@ -8,6 +8,11 @@ const gitignorePath = path.resolve(import.meta.dirname, '.gitignore')
 
 export default defineConfig(
 	includeIgnoreFile(gitignorePath),
+	{
+		// vendored upstream template copies are byte-faithful to their source
+		// repo (see .prettierignore) and are not this repo's code to lint
+		ignores: ['packages/*/src/template/upstream/'],
+	},
 	js.configs.recommended,
 	prettier,
 

@@ -1,3 +1,6 @@
 {
 	"$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
+	// vendored upstream template copies are byte-faithful to their source repo
+	// (see .prettierignore) and are not this repo's code to analyze
+	"ignore": ["packages/*/src/template/upstream/**"],
 }
